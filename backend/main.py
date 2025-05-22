@@ -18,8 +18,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Get the base directory (parent of backend folder)
+BASE_DIR = Path(__file__).parent.parent
+
 # Create logs directory if it doesn't exist
-LOGS_DIR = Path("logs")
+LOGS_DIR = BASE_DIR / "backend" / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
 
 @app.post("/track/{campaign_id}")
@@ -55,8 +58,8 @@ async def track_event(campaign_id: str, request: Request):
     return JSONResponse({"status": "success"})
 
 # Mount static files for frontend
-app.mount("/", StaticFiles(directory="../frontend", html=True), name="frontend")
-app.mount("/kits", StaticFiles(directory="../kits"), name="kits")
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "frontend")), name="static")
+app.mount("/kits", StaticFiles(directory=str(BASE_DIR / "kits")), name="kits")
 
 if __name__ == "__main__":
     import uvicorn
