@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishGrid - Campaign Results</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">Campaign Results</h1>
+                    <p class="text-gray-600" id="campaignName">Loading...</p>
+                </div>
+                <a href="/" class="text-blue-600 hover:text-blue-800">← Back to Campaigns</a>
+            </div>
+        </header>
+
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-700">Total Opens</h3>
+                <p class="text-3xl font-bold text-blue-600" id="totalOpens">0</p>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-700">Total Clicks</h3>
+                <p class="text-3xl font-bold text-green-600" id="totalClicks">0</p>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-700">Total Submissions</h3>
+                <p class="text-3xl font-bold text-red-600" id="totalSubmissions">0</p>
+            </div>
+        </div>
+
+        <!-- Events Table -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Event Log</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target Email</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User Agent</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="eventsTable">
+                        <!-- Events will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get campaign ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const campaignId = urlParams.get('campaign');
+        
+        if (campaignId) {
+            document.getElementById('campaignName').textContent = `Campaign: ${campaignId}`;
+            loadCampaignData(campaignId);
+        }
+
+        async function loadCampaignData(campaignId) {
+            try {
+                const response = await fetch(`/logs/${campaignId}.json`);
+                const text = await response.text();
+                
+                // Parse newline-delimited JSON
+                const events = text.trim().split('\n')
+                    .filter(line => line.trim())
+                    .map(line => JSON.parse(line));
+
+                // Update stats
+                const stats = {
+                    opens: events.filter(e => e.event_type === 'open').length,
+                    clicks: events.filter(e => e.event_type === 'click').length,
+                    submissions: events.filter(e => e.event_type === 'submit').length
+                };
+
+                document.getElementById('totalOpens').textContent = stats.opens;
+                document.getElementById('totalClicks').textContent = stats.clicks;
+                document.getElementById('totalSubmissions').textContent = stats.submissions;
+
+                // Populate table
+                const tableBody = document.getElementById('eventsTable');
+                tableBody.innerHTML = events.map(event => `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${new Date(event.timestamp).toLocaleString()}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                ${event.event_type === 'open' ? 'bg-blue-100 text-blue-800' : 
+                                  event.event_type === 'click' ? 'bg-green-100 text-green-800' : 
+                                  'bg-red-100 text-red-800'}">
+                                ${event.event_type}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${event.target_email}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${event.ip_address}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${event.user_agent}
+                        </td>
+                    </tr>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error loading campaign data:', error);
+            }
+        }
+    </script>
+</body>
+</html> 
