@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishGrid - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <h1 class="text-xl font-bold text-indigo-600">PhishGrid</h1>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <button id="logoutBtn" class="text-gray-500 hover:text-gray-700">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <dt class="text-sm font-medium text-gray-500 truncate">Active Campaigns</dt>
+                    <dd class="mt-1 text-3xl font-semibold text-gray-900" id="activeCampaigns">0</dd>
+                </div>
+            </div>
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <dt class="text-sm font-medium text-gray-500 truncate">Total Targets</dt>
+                    <dd class="mt-1 text-3xl font-semibold text-gray-900" id="totalTargets">0</dd>
+                </div>
+            </div>
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <dt class="text-sm font-medium text-gray-500 truncate">Success Rate</dt>
+                    <dd class="mt-1 text-3xl font-semibold text-gray-900" id="successRate">0%</dd>
+                </div>
+            </div>
+        </div>
+
+        <!-- Campaign List -->
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-medium text-gray-900">Campaigns</h2>
+                    <button id="newCampaignBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
+                        New Campaign
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Targets</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Success Rate</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200" id="campaignList">
+                            <!-- Campaigns will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Campaign Modal -->
+    <div id="newCampaignModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900">Create New Campaign</h3>
+                <form id="newCampaignForm" class="mt-4">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="campaignName">
+                            Campaign Name
+                        </label>
+                        <input type="text" id="campaignName" required
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="kitSelect">
+                            Phishing Kit
+                        </label>
+                        <select id="kitSelect" required
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                            <!-- Kits will be inserted here -->
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="targetEmails">
+                            Target Emails (one per line)
+                        </label>
+                        <textarea id="targetEmails" required
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            rows="4"></textarea>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="button" id="cancelCampaignBtn"
+                            class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2 hover:bg-gray-400">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                            class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
+                            Create
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/static/login.html';
+        }
+
+        // Logout handler
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = '/static/login.html';
+        });
+
+        // API calls with authentication
+        async function apiCall(url, options = {}) {
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                ...options.headers
+            };
+            const response = await fetch(url, { ...options, headers });
+            if (response.status === 401) {
+                localStorage.removeItem('token');
+                window.location.href = '/static/login.html';
+                return null;
+            }
+            return response;
+        }
+
+        // Load campaigns
+        async function loadCampaigns() {
+            const response = await apiCall('/campaigns');
+            if (!response) return;
+            
+            const campaigns = await response.json();
+            const campaignList = document.getElementById('campaignList');
+            campaignList.innerHTML = '';
+
+            campaigns.forEach(campaign => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${campaign.name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${campaign.status}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${campaign.targets.length}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">0%</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <button class="text-indigo-600 hover:text-indigo-900" onclick="viewCampaign('${campaign.id}')">View</button>
+                    </td>
+                `;
+                campaignList.appendChild(row);
+            });
+        }
+
+        // Load kits
+        async function loadKits() {
+            const response = await apiCall('/kits');
+            if (!response) return;
+            
+            const kits = await response.json();
+            const kitSelect = document.getElementById('kitSelect');
+            kitSelect.innerHTML = '';
+
+            kits.forEach(kit => {
+                const option = document.createElement('option');
+                option.value = kit.id;
+                option.textContent = kit.name;
+                kitSelect.appendChild(option);
+            });
+        }
+
+        // New campaign modal handlers
+        document.getElementById('newCampaignBtn').addEventListener('click', () => {
+            document.getElementById('newCampaignModal').classList.remove('hidden');
+        });
+
+        document.getElementById('cancelCampaignBtn').addEventListener('click', () => {
+            document.getElementById('newCampaignModal').classList.add('hidden');
+        });
+
+        // Create new campaign
+        document.getElementById('newCampaignForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('campaignName').value;
+            const kitId = document.getElementById('kitSelect').value;
+            const emails = document.getElementById('targetEmails').value
+                .split('\n')
+                .map(email => email.trim())
+                .filter(email => email);
+
+            const targets = emails.map(email => ({
+                email,
+                tracking_id: crypto.randomUUID()
+            }));
+
+            const response = await apiCall('/campaigns', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name,
+                    kit_id: kitId,
+                    targets
+                })
+            });
+
+            if (response && response.ok) {
+                document.getElementById('newCampaignModal').classList.add('hidden');
+                loadCampaigns();
+            }
+        });
+
+        // Initial load
+        loadCampaigns();
+        loadKits();
+    </script>
+</body>
+</html> 
